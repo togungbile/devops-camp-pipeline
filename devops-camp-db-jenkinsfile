@@ -2,8 +2,15 @@ pipeline {
     agent {
         label 'jenkins-agent'
     }
-    //TODO: add environment variables
-    stage('Application repository') {
+    environment {
+        PIPELINE_HASH = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+        HARBOR_REGISTRY = 'harbor.dev.afsmtddso.com'
+        HARBOR_PROJECT = 'togungbile-harbor-project'
+        DB_IMAGE_NAME = 'db'
+    }
+    stages {
+        //TODO: add stages to pipeline
+        stage('Application repository') {
             steps {
                 echo "Cloning application repository"
                 sh 'git clone https://github.com/togungbile/afs-labs-student.git'
@@ -11,11 +18,11 @@ pipeline {
                     script {
                         env.COMMIT_HASH = sh(script: 'git log --format=format:%h -1 --follow database/database.sql', returnStdout: true).trim()
                     }
-                    withCredentials([usernamePassword(credentialsId: 'togungbile-harbor-auth', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                }
+                withCredentials([usernamePassword(credentialsId: 'togungbile-harbor-auth', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
                     script {
                         env.BUILD_DB = sh(script: 'python check_harbor_db.py -h $COMMIT_HASH -i $DB_IMAGE_NAME -r $HARBOR_REGISTRY -p $HARBOR_PROJECT -c ${USERNAME}:${PASSWORD}', returnStdout: true).trim()
                     }
-                }
                 }
             }
         }
@@ -62,8 +69,6 @@ pipeline {
               }
            }
         }
-    stages {
-        //TODO: add stages to pipeline
     }
     post {
         cleanup {
